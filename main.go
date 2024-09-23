@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"os"
+	"text/template"
 )
 
 var (
@@ -13,16 +14,84 @@ var (
 	podIP     string = os.Getenv("POD_IP")
 )
 
+const htmlPageTemplate = `
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Test Kube</title>
+</head>
+
+<body>
+	<h1>Welcome to K8s</h1>
+	<p>Pod Name: {{.PodName}}</p>
+	<p>Namespace: {{.Namespace}}</p>
+	<p>Node Name: {{.NodeName}}</p>
+	<p>Host IP: {{.HostIP}}</p>
+	<p>Pod IP: {{.PodIP}}</p>
+
+	<form action="/memory-stress" method="post">
+		<input type="submit" value="Memory Stress">
+	</form>
+
+	<form action="/cpu-stress" method="post">
+		<input type="submit" value="CPU Stress">
+	</form>
+
+	<form action="/crash" method="post">
+		<input type="submit" value="Crash Pod">
+	</form>
+	
+</body>
+</html>
+`
+
 func main() {
 	// http server start 8080
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Welcome to K8s\n"))
-		w.Write([]byte("Pod Name: " + podName + "\n"))
-		w.Write([]byte("Namespace: " + namespace + "\n"))
-		w.Write([]byte("Node Name: " + nodeName + "\n"))
-		w.Write([]byte("Host IP: " + hostIP + "\n"))
-		w.Write([]byte("Pod IP: " + podIP + "\n"))
+		// render html page
+		data := struct {
+			PodName   string
+			Namespace string
+			NodeName  string
+			HostIP    string
+			PodIP     string
+		}{
+			PodName:   podName,
+			Namespace: namespace,
+			NodeName:  nodeName,
+			HostIP:    hostIP,
+			PodIP:     podIP,
+		}
+		tmpl, err := template.New("webpage").Parse(htmlPageTemplate)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		tmpl.Execute(w, data)
+	})
+
+	http.HandleFunc("/memory-stress", func(w http.ResponseWriter, r *http.Request) {
+		memoryStressStart()
+		w.Write([]byte("Memory stress started\n"))
+	})
+
+	http.HandleFunc("/crash", func(w http.ResponseWriter, r *http.Request) {
+		os.Exit(1)
+	})
+
+	http.HandleFunc("/cpu-stress", func(w http.ResponseWriter, r *http.Request) {
+		for {
+		}
 	})
 
 	http.ListenAndServe(":8080", nil)
+}
+
+func memoryStressStart() {
+	// 1 GB memory allocation
+	var data []byte
+	for i := 0; i < 1024; i++ {
+		data = append(data, make([]byte, 1024)...)
+	}
+	_ = data // Use the data to avoid the SA4010 warning
 }
