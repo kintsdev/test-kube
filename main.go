@@ -88,10 +88,15 @@ func main() {
 }
 
 func memoryStressStart() {
-	// 1 GB memory allocation
-	var data []byte
-	for i := 0; i < 1024; i++ {
-		data = append(data, make([]byte, 1024)...)
+	// 1 GB = 1024 * 1024 * 1024 byte
+	const size = 1024 * 1024 * 1024
+
+	// 1 GB data
+	data := make([]byte, size)
+
+	// fill data
+	for i := 0; i < size; i++ {
+		data[i] = 1
 	}
-	_ = data // Use the data to avoid the SA4010 warning
+
 }
