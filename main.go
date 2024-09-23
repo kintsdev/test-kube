@@ -80,8 +80,12 @@ func main() {
 	})
 
 	http.HandleFunc("/cpu-stress", func(w http.ResponseWriter, r *http.Request) {
-		for {
-		}
+		go func() {
+			for {
+			}
+		}()
+
+		w.Write([]byte("CPU stress started\n"))
 	})
 
 	http.ListenAndServe(":8080", nil)
